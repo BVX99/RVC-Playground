@@ -269,11 +269,12 @@ with gr.Blocks(theme="Hev832/EasyAndCool") as app:
                     index_rate = gr.Slider(label='Index Rate: ',minimum=0,maximum=1,value=0.66,step=0.01)
                     pitch = gr.Slider(label='Pitch (-12 lowers it an octave, 0 keeps the original pitch, 12 lifts it an octave): ',minimum =-12, maximum=12, step=1, value=0, interactive=True)
                     method = gr.Dropdown(label="Method:",choices=["rmvpe","pm"],value="rmvpe")
-                    recorder = gr.Microphone(label="Record audio here...",type='filepath')
-                    audio_picker = gr.Dropdown(label="",choices=show_available('audios'),value='',interactive=True)
+            with gr.TabItem("2.Choose an audio file:"):
+                recorder = gr.Microphone(label="Record audio here...",type='filepath')
+                audio_picker = gr.Dropdown(label="",choices=show_available('audios'),value='',interactive=True)
                 try:
                     recorder.stop_recording(upload_file, inputs=[recorder],outputs=[audio_picker])
-             except:
+                except:
                     recorder.upload(upload_file, inputs=[recorder],outputs=[audio_picker])
             with gr.TabItem("(Or upload a new file here)"):
                 try:
@@ -281,11 +282,10 @@ with gr.Blocks(theme="Hev832/EasyAndCool") as app:
                 except:#Version Compatibiliy
                     dropbox = gr.File(label="Drop an audio here.",file_types=['.wav', '.mp3', '.ogg', '.flac', '.aac'], type="file")
                 dropbox.upload(fn=upload_file, inputs=[dropbox],outputs=[audio_picker])
-    with gr.TabItem("convert your audio"):
         audio_refresher = gr.Button("Refresh")
         audio_refresher.click(fn=refresh,inputs=[],outputs=[audio_picker,model_picker,index_picker])
         convert_button = gr.Button("Convert")
-             
+    with gr.Row():
         audio_player = gr.Audio()
         inputs = [audio_picker,model_picker,index_picker,index_rate,pitch,method]
         audio_picker.change(fn=update_audio_player, inputs=[audio_picker],outputs=[audio_player])
