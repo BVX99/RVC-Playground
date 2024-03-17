@@ -5,7 +5,7 @@ from datetime import datetime
 from tools.useftools import *
 os.environ["rmvpe_root"] = "assets/rmvpe"
 os.environ['index_root']="logs"
-os.environ['weight_root']="assets/weights"
+os.environ['weight_root']="weights"
 from infer.modules.vc.modules import VC
 from configs.config import Config
 import torch
@@ -104,7 +104,7 @@ def download_from_url(url, model):
     zipfile_path = './zips/' + zipfile
     try:
         if url.endswith('.pth'):
-            subprocess.run(["wget", url, "-O", f'./assets/weights/{model}.pth'])
+            subprocess.run(["wget", url, "-O", f'./weights/{model}.pth'])
             return f"Sucessfully downloaded as {model}.pth", {"choices":show_available("assets/weights"),"__type__":"update"}
         elif url.endswith('.index'):
             if not os.path.exists(f'./logs/{model}'): os.makedirs(f'./logs/{model}')
@@ -128,19 +128,19 @@ def download_from_url(url, model):
                             os.mkdir(f'./logs/{model}')
                             shutil.copy2(file_path,f'./logs/{model}')
                         elif "G_" not in file and "D_" not in file and file.endswith(".pth"):
-                            shutil.copy(file_path,f'./assets/weights/{model}.pth')
+                            shutil.copy(file_path,f'./weights/{model}.pth')
             elif filename.endswith(".pth"):
-                shutil.copy2(os.path.join("./zips/",filename),f'./assets/weights/{model}.pth')
+                shutil.copy2(os.path.join("./zips/",filename),f'./weights/{model}.pth')
             elif filename.endswith(".index"):
                 os.mkdir(f'./logs/{model}')
                 shutil.copy2(os.path.join("./zips/",filename),f'./logs/{model}/')
             else:
-                return "No zipfile found.", {"choices":show_available("assets/weights"),"__type__":"update"}
+                return "No zipfile found.", {"choices":show_available("weights"),"__type__":"update"}
         shutil.rmtree("zips")
         shutil.rmtree("unzips")
-        return "Success.", {"choices":show_available("assets/weights"),"__type__":"update"}
+        return "Success.", {"choices":show_available("weights"),"__type__":"update"}
     except:
-        return "There's been an error.", {"choices":show_available("assets/weights"),"__type__":"update"}
+        return "There's been an error.", {"choices":show_available("weights"),"__type__":"update"}
 
 def import_from_name(model):
     try:
@@ -162,8 +162,8 @@ def import_from_name(model):
     zipfile_path = './zips/' + zipfile
     try:
         if url.endswith('.pth'):
-            subprocess.run(["wget", url, "-O", f'./assets/weights/{model}.pth'])
-            return f"", {"choices":show_available("assets/weights"),"__type__":"update","value":f"{model}.pth"}
+            subprocess.run(["wget", url, "-O", f'./weights/{model}.pth'])
+            return f"", {"choices":show_available("weights"),"__type__":"update","value":f"{model}.pth"}
         if "drive.google.com" in url:
             subprocess.run(["gdown", url, "--fuzzy", "-O", zipfile_path])
         elif "mega.nz" in url:
@@ -182,9 +182,9 @@ def import_from_name(model):
                             os.mkdir(f'./logs/{model}')
                             shutil.copy2(file_path,f'./logs/{model}')
                         elif "G_" not in file and "D_" not in file and file.endswith(".pth"):
-                            shutil.copy(file_path,f'./assets/weights/{model}.pth')
+                            shutil.copy(file_path,f'./weights/{model}.pth')
             elif filename.endswith(".pth"):
-                shutil.copy2(os.path.join("./zips/",filename),f'./assets/weights/{model}.pth')
+                shutil.copy2(os.path.join("./zips/",filename),f'./weights/{model}.pth')
             elif filename.endswith(".index"):
                 os.mkdir(f'./logs/{model}')
                 shutil.copy2(os.path.join("./zips/",filename),f'./logs/{model}/')
@@ -192,7 +192,7 @@ def import_from_name(model):
                 return "", {"__type__":"update"}
         shutil.rmtree("zips")
         shutil.rmtree("unzips")
-        return "", {"choices":show_available("assets/weights"),"__type__":"update","value":f"{model}.pth"}
+        return "", {"choices":show_available("weights"),"__type__":"update","value":f"{model}.pth"}
     except:
         return "", {"__type__":"update"}
 
