@@ -144,13 +144,101 @@ def download_from_url(url, model):
 
 def import_from_name(model):
     try:
-        url = models[f'{model}']
-    except:
-        return "", {"__type__":"update"}
+"import gradio as gr
+import os, shutil
+import subprocess, glob
+from datetime import datetime
+from tools.useftools import *
+os.environ["rmvpe_root"] = "assets/rmvpe"
+os.environ['index_root']="logs"
+os.environ['weight_root']="assets/weights"
+from infer.modules.vc.modules import VC
+from configs.config import Config
+import torch
+os.makedirs(os.path.join(".", "audios"), exist_ok=True)
+config = Config()
+vc = VC(config)
+
+def warn(text):
+    try: gr.Warning(text)
+    except: pass
+
+def load_model(model_picker,index_picker):
+    logs = show_available("logs")
+    if model_picker.replace(".pth","") in logs:
+        log = model_picker.replace(".pth","")
+    else:
+        log = index_picker
+        warn("Could not find a matching index file.")
+    vc.get_vc(model_picker,0,0)
+    return {"choices":logs,"value":log,"__type__": "update"}
+
+def convert(audio_picker,model_picker,index_picker,index_rate,pitch,method):
+    warn("Your audio is being converted. Please wait.")
+    now = datetime.now().strftime("%d%m%Y%H%M%S")
+    index_files = glob.glob(f"logs/{index_picker}/*.index")
+    if index_files:
+        print(f"Found index: {index_files[0]}")
+    else:
+        warn("Sorry, I couldn't find your .index file.")
+        print("Did not find a matching .index file")
+        index_files = [f'logs/{model_picker}/fake_index.index']
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    command = [
+        "python",
+        "tools/infer_cli.py",
+        "--f0up_key", str(pitch),
+        "--input_path", f"audios/{audio_picker}",
+        "--index_path", index_files[0],
+        "--f0method", method,
+        "--opt_path", f"audios/cli_output_{now}.wav",
+        "--model_name", f"{model_picker}",
+        "--index_rate", str(float(index_rate)),
+        "--device", device,
+        "--filter_radius", "3",
+        "--resample_sr", "0",
+        "--rms_mix_rate", "0.0",
+        "--protect", "0"
+    ]
+
+    try:
+        process = subprocess.run(command, check=True)
+        print("Script executed successfully.")
+        return {"choices":show_available("audios"),"__type__":"update","value":f"cli_output_{now}.wav"},f"audios/cli_output_{now}.wav"
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}")
+        return {"choices":show_available("audios"),"__type__":"update"}, None
+
+assets_folder = "assets"
+if not os.path.exists(assets_folder):
+    os.makedirs(assets_folder)
+files = {
+    "rmvpe/rmvpe.pt":"https://huggingface.co/Rejekts/project/resolve/main/rmvpe.pt",
+    "hubert/hubert_base.pt":"https://huggingface.co/Rejekts/project/resolve/main/hubert_base.pt",
+    "pretrained_v2/D40k.pth":"https://huggingface.co/Rejekts/project/resolve/main/D40k.pth",
+    "pretrained_v2/G40k.pth":"https://huggingface.co/Rejekts/project/resolve/main/G40k.pth",
+    "pretrained_v2/f0D40k.pth":"https://huggingface.co/Rejekts/project/resolve/main/f0D40k.pth",
+    "pretrained_v2/f0G40k.pth":"https://huggingface.co/Rejekts/project/resolve/main/f0G40k.pth"
+}
+for file, link in files.items():
+    file_path = os.path.join(assets_folder, file)
+    if not os.path.exists(file_path):
+        try:
+            subprocess.run(['wget', link, '-O', file_path], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error downloading {file}: {e}")
+
+def download_from_url(url, model):
+    if model =='':
+        try:
+            model = url.split('/')[-1].split('?')[0]
+        except:
+            return "You need to name your model. For example: My-Model", {"choices":show_available("assets/weights"),"__type__":"update"}
     url=url.replace('/blob/main/','/resolve/main/')
+    model=model.replace('.pth','').replace('.index','').replace('.zip','')
     print(f"Model name: {model}")
     if url == '':
-        return "", {"__type__":"update"}
+        return "URL cannot be left empty.", {"choices":show_available("assets/weights"),"__type__":"update"}
     url = url.strip()
     zip_dirs = ["zips", "unzips"]
     for directory in zip_dirs:
@@ -162,8 +250,12 @@ def import_from_name(model):
     zipfile_path = './zips/' + zipfile
     try:
         if url.endswith('.pth'):
-            subprocess.run(["wget", url, "-O", f'./weights/{model}.pth'])
-            return f"", {"choices":show_available("weights"),"__type__":"update","value":f"{model}.pth"}
+            subprocess.run(["wget", url, "-O", f'./assets/weights/{model}.pth'])
+            return f"Sucessfully downloaded as {model}.pth", {"choices":show_available("assets/weights"),"__type__":"update"}
+        elif url.endswith('.index'):
+            if not os.path.exists(f'./logs/{model}'): os.makedirs(f'./logs/{model}')
+            subprocess.run(["wget", url, "-O", f'./logs/{model}/added_{model}.index'])
+            return f"Successfully downloaded as added_{model}.index", {"choices":show_available("assets/weights"),"__type__":"update"}
         if "drive.google.com" in url:
             subprocess.run(["gdown", url, "--fuzzy", "-O", zipfile_path])
         elif "mega.nz" in url:
@@ -182,9 +274,63 @@ def import_from_name(model):
                             os.mkdir(f'./logs/{model}')
                             shutil.copy2(file_path,f'./logs/{model}')
                         elif "G_" not in file and "D_" not in file and file.endswith(".pth"):
-                            shutil.copy(file_path,f'./weights/{model}.pth')
+                            shutil.copy(file_path,f'./assets/weights/{model}.pth')
             elif filename.endswith(".pth"):
-                shutil.copy2(os.path.join("./zips/",filename),f'./weights/{model}.pth')
+                shutil.copy2(os.path.join("./zips/",filename),f'./assets/weights/{model}.pth')
+            elif filename.endswith(".index"):
+                os.mkdir(f'./logs/{model}')
+                shutil.copy2(os.path.join("./zips/",filename),f'./logs/{model}/')
+            else:
+                return "No zipfile found.", {"choices":show_available("assets/weights"),"__type__":"update"}
+        shutil.rmtree("zips")
+        shutil.rmtree("unzips")
+        return "Success.", {"choices":show_available("assets/weights"),"__type__":"update"}
+    except:
+        return "There's been an error.", {"choices":show_available("assets/weights"),"__type__":"update"}
+
+def import_from_name(model):
+    try:
+        url = models[f'{model}']
+    except:
+        return "", {"__type__":"update"}
+    url=url.replace('/blob/main/','/resolve/main/')
+    print(f"Model name: {model}")
+    if url == '':
+        return "", {"__type__":"update"}
+    url = url.strip()
+    zip_dirs = ["zips", "unzips"]
+    for directory in zip_dirs:
+        if os.path.exists(directory):
+            shutil.rmtree(directory)
+    os.makedirs("zips", exist_ok=True)
+    os.makedirs("unzips", exist_ok=True)
+    zipfile = model + '.zip'
+    zipfile_path = './zips/' + zipfile
+    try:
+        if url.endswith('.pth'):
+            subprocess.run(["wget", url, "-O", f'./assets/weights/{model}.pth'])
+            return f"", {"choices":show_available("assets/weights"),"__type__":"update","value":f"{model}.pth"}
+        if "drive.google.com" in url:
+            subprocess.run(["gdown", url, "--fuzzy", "-O", zipfile_path])
+        elif "mega.nz" in url:
+            m = Mega()
+            m.download_url(url, './zips')
+        else:
+            subprocess.run(["wget", url, "-O", zipfile_path])
+        for filename in os.listdir("./zips"):
+            if filename.endswith(".zip"):
+                zipfile_path = os.path.join("./zips/",filename)
+                shutil.unpack_archive(zipfile_path, "./unzips", 'zip')
+                for root, dirs, files in os.walk('./unzips'):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        if file.endswith(".index"):
+                            os.mkdir(f'./logs/{model}')
+                            shutil.copy2(file_path,f'./logs/{model}')
+                        elif "G_" not in file and "D_" not in file and file.endswith(".pth"):
+                            shutil.copy(file_path,f'./assets/weights/{model}.pth')
+            elif filename.endswith(".pth"):
+                shutil.copy2(os.path.join("./zips/",filename),f'./assets/weights/{model}.pth')
             elif filename.endswith(".index"):
                 os.mkdir(f'./logs/{model}')
                 shutil.copy2(os.path.join("./zips/",filename),f'./logs/{model}/')
@@ -192,7 +338,7 @@ def import_from_name(model):
                 return "", {"__type__":"update"}
         shutil.rmtree("zips")
         shutil.rmtree("unzips")
-        return "", {"choices":show_available("weights"),"__type__":"update","value":f"{model}.pth"}
+        return "", {"choices":show_available("assets/weights"),"__type__":"update","value":f"{model}.pth"}
     except:
         return "", {"__type__":"update"}
 
@@ -238,7 +384,8 @@ def refresh():
 
 def update_audio_player(choice):
     return os.path.join("audios",choice)
-
+"
+ https://huggingface.co/spaces/Rejekts/RVC_PlayGround/blob/main/app.py#:~:text=import%20gradio%20as,audios%22%2Cchoice)
 with gr.Blocks(theme="Hev832/EasyAndCool") as app:
     with gr.Row():
         with gr.Column():
