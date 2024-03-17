@@ -45,7 +45,7 @@ def convert(audio_picker,model_picker,index_picker,index_rate,pitch,method):
         "--input_path", f"audios/{audio_picker}",
         "--index_path", index_files[0],
         "--f0method", method,
-        "--opt_path", f"audios/cli_output_{now}.wav",
+        "--opt_path", f"audios/cli_output_{audio_picker}.wav",
         "--model_name", f"{model_picker}",
         "--index_rate", str(float(index_rate)),
         "--device", device,
@@ -239,7 +239,7 @@ def refresh():
 def update_audio_player(choice):
     return os.path.join("audios",choice)
 
-with gr.Blocks() as app:
+with gr.Blocks(theme="Hev832/EasyAndCool") as app:
     with gr.Row():
         with gr.Column():
             gr.Markdown("# RVC PlayGround")
