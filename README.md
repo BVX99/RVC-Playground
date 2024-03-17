@@ -5,7 +5,7 @@
 
 
 
-This is the huggingface version of RVC EasyGUI, created by Rejekts. It is a voice cloner to make your voice sound like other voices.
+This is the playground version of RVC EasyGUI, created by Rejekts. It is a voice cloner to make your voice sound like other voices.
 
 [The license is MIT and you can find it here](https://github.com/777gt/EVC/blob/main/LICENSE)
 
